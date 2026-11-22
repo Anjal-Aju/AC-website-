@@ -1,0 +1,520 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Cipher Modes Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: one column. Mode tabs, then an animated stage with step controls, then formulas, facts, comparison table. */
+:root {
+  --bg: #f3f6f9;
+  --surface: #ffffff;
+  --surface2: #e9eef4;
+  --fg: #14202b;
+  --fg2: #4a5a69;
+  --line: #cfd9e3;
+  --arrow: #5b6b7b;
+  --p: #0b7a75;  --p-bg: #d9f1ee;
+  --c: #b45309;  --c-bg: #fdebd3;
+  --v: #7a3fb0;  --v-bg: #eadcf7;
+  --hl: #e11d48;
+  --good: #0b7a4b; --warn: #a15c07; --bad: #b4233a;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e151d; --surface: #16202b; --surface2: #1e2b39; --fg: #e6edf3; --fg2: #9fb0c0;
+    --line: #2b3a4a; --arrow: #8da0b3;
+    --p: #4fd1c5; --p-bg: #123a3a; --c: #f2a65a; --c-bg: #3d2a14; --v: #b99af0; --v-bg: #2c2044;
+    --hl: #fb7185; --good: #4ade80; --warn: #fbbf24; --bad: #fb7185;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e151d; --surface: #16202b; --surface2: #1e2b39; --fg: #e6edf3; --fg2: #9fb0c0;
+  --line: #2b3a4a; --arrow: #8da0b3;
+  --p: #4fd1c5; --p-bg: #123a3a; --c: #f2a65a; --c-bg: #3d2a14; --v: #b99af0; --v-bg: #2c2044;
+  --hl: #fb7185; --good: #4ade80; --warn: #fbbf24; --bad: #fb7185;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.55;
+  padding-block: 28px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 920px; margin: 0 auto; display: flex; flex-direction: column; gap: 22px; }
+h1 { font-size: clamp(1.7rem, 5vw, 2.3rem); line-height: 1.15; margin: 0 0 6px; font-weight: 600; text-wrap: balance; }
+h2 { font-size: 1.05rem; margin: 0 0 10px; font-weight: 600; }
+p { margin: 0; }
+.lead { color: var(--fg2); max-width: 60ch; }
+.mono { font-family: var(--font-mono); }
+
+/* legend */
+.legend { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.chip { font-family: var(--font-mono); font-size: 12.5px; padding: 3px 9px; border-radius: 5px; border: 1.5px solid var(--line); background: var(--surface); white-space: nowrap; }
+.chip.p { border-color: var(--p); background: var(--p-bg); }
+.chip.c { border-color: var(--c); background: var(--c-bg); }
+.chip.v { border-color: var(--v); background: var(--v-bg); }
+
+/* tabs */
+.tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
+.tab {
+  font: 600 14px var(--font-mono); padding: 9px 16px; border-radius: 7px; cursor: pointer;
+  background: var(--surface); color: var(--fg2); border: 1.5px solid var(--line); flex: 1 0 auto;
+}
+.tab[aria-selected="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.tab:focus-visible, button:focus-visible, .ans:focus-visible { outline: 2px solid var(--hl); outline-offset: 2px; }
+
+/* stage */
+.stage { background: var(--surface); border: 1.5px solid var(--line); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.stage-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 16px; }
+.mode-name { font-size: 1.25rem; font-weight: 600; }
+.mode-name small { font-weight: 400; color: var(--fg2); font-size: 0.9rem; margin-left: 8px; }
+.hook { font-family: var(--font-mono); font-size: 13px; color: var(--fg2); }
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.btn { font: 500 14px var(--font-body); padding: 8px 14px; border-radius: 7px; border: 1.5px solid var(--line); background: var(--surface2); color: var(--fg); cursor: pointer; }
+.btn.primary { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.btn:disabled { opacity: 0.4; cursor: default; }
+.stepcount { font-family: var(--font-mono); font-size: 13px; color: var(--fg2); margin-left: auto; }
+.caption { min-height: 3.2em; padding: 10px 12px; border-radius: 8px; background: var(--surface2); border-left: 4px solid var(--hl); }
+.hint { font-size: 12.5px; color: var(--fg2); display: none; }
+.diagram { overflow-x: auto; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); }
+.diagram svg { display: block; width: 100%; min-width: 700px; height: auto; }
+
+/* svg parts */
+.el { transition: opacity 0.5s ease; }
+.el.off { opacity: 0; }
+.b { stroke-width: 1.6; fill: var(--surface2); stroke: var(--fg2); }
+.b.p { fill: var(--p-bg); stroke: var(--p); }
+.b.c { fill: var(--c-bg); stroke: var(--c); }
+.b.v { fill: var(--v-bg); stroke: var(--v); }
+.b.k { fill: var(--surface); stroke: var(--fg); }
+.t { font-family: var(--font-mono); font-size: 14px; font-weight: 500; fill: var(--fg); text-anchor: middle; dominant-baseline: central; }
+.t .sub, .l .sub { font-size: 10px; }
+.l { font-family: var(--font-mono); font-size: 12px; fill: var(--fg2); dominant-baseline: central; }
+.x { fill: var(--surface); stroke: var(--fg); stroke-width: 1.6; }
+.xp { stroke: var(--fg); stroke-width: 1.6; fill: none; }
+.a { fill: none; stroke: var(--arrow); stroke-width: 1.8; stroke-linejoin: round; }
+.ah { fill: var(--arrow); }
+.el.cur .b { stroke: var(--hl); stroke-width: 3; }
+.el.cur .x { stroke: var(--hl); stroke-width: 3; }
+.el.cur .a { stroke: var(--hl); stroke-width: 2.8; }
+.el.cur .l { fill: var(--hl); }
+
+/* formulas */
+.testbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.toggle { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; }
+.toggle input { width: 18px; height: 18px; accent-color: var(--hl); }
+.formulas { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.formula { background: var(--surface); border: 1.5px solid var(--line); border-radius: 10px; padding: 12px 14px; min-width: 0; }
+.formula .lab { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--fg2); margin-bottom: 4px; }
+.formula .eq { font-family: var(--font-mono); font-size: 1.05rem; font-weight: 500; overflow-wrap: anywhere; }
+.formula .side { font-family: var(--font-mono); font-size: 12.5px; color: var(--fg2); margin-top: 2px; }
+
+/* facts */
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.fact { background: var(--surface); border: 1.5px solid var(--line); border-radius: 10px; padding: 10px 12px; min-width: 0; }
+.fact .lab { font-size: 12px; color: var(--fg2); text-transform: uppercase; letter-spacing: 0.06em; }
+.fact .val { font-weight: 600; margin-top: 2px; }
+.good { color: var(--good); } .warn { color: var(--warn); } .bad { color: var(--bad); }
+.note { color: var(--fg2); max-width: 70ch; margin-top: 12px; }
+
+/* recall mode */
+.recall .ans { filter: blur(8px); cursor: pointer; user-select: none; }
+.recall .ans.shown { filter: none; user-select: auto; }
+
+/* table */
+.tablewrap { overflow-x: auto; border: 1.5px solid var(--line); border-radius: 10px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; min-width: 600px; font-size: 14px; }
+th, td { padding: 9px 12px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--fg2); font-weight: 600; background: var(--surface2); }
+td:first-child { font-family: var(--font-mono); font-weight: 600; }
+tr:last-child td { border-bottom: 0; }
+tr.sel td { background: var(--surface2); }
+
+.rules { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 8px; max-width: 72ch; }
+.rules li::marker { color: var(--hl); }
+
+@media (max-width: 520px) {
+  .hint { display: block; }
+  .stepcount { margin-left: 0; width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) { .el { transition: none; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Cipher Modes Lab</h1>
+    <p class="lead">Watch ECB, CBC, CFB, OFB and CTR encrypt three message blocks, one step at a time. Press Play, or step with Back and Next.</p>
+    <div class="legend" aria-label="Legend">
+      <span class="chip p">Pᵢ plaintext block</span>
+      <span class="chip c">Cᵢ ciphertext block</span>
+      <span class="chip v">IV / nonce+counter</span>
+      <span class="chip">E<sub>K</sub> = block cipher with key K</span>
+      <span class="chip">⊕ = XOR</span>
+    </div>
+  </header>
+
+  <div class="tabs" role="tablist" id="tabs" aria-label="Cipher mode"></div>
+
+  <section class="stage" aria-live="polite">
+    <div class="stage-head">
+      <div class="mode-name" id="modeName"></div>
+      <div class="hook" id="hook"></div>
+    </div>
+    <div class="controls">
+      <button class="btn" id="back">Back</button>
+      <button class="btn primary" id="play">Play</button>
+      <button class="btn" id="next">Next</button>
+      <span class="stepcount" id="count"></span>
+    </div>
+    <p class="caption" id="caption"></p>
+    <div class="diagram" id="diagram"></div>
+    <p class="hint">Swipe the diagram sideways to see all three blocks. It shows encryption.</p>
+  </section>
+
+  <section>
+    <div class="testbar">
+      <h2>Formulas to memorise</h2>
+      <label class="toggle"><input type="checkbox" id="recall"> Test me: hide the answers</label>
+    </div>
+    <div class="formulas" id="formulas"></div>
+  </section>
+
+  <section>
+    <h2>Properties of <span id="factMode"></span></h2>
+    <div class="facts" id="facts"></div>
+    <p class="note ans" id="note" tabindex="0"></p>
+  </section>
+
+  <section>
+    <h2>All five side by side</h2>
+    <div class="tablewrap"><table id="table"></table></div>
+  </section>
+
+  <section>
+    <h2>Four rules that cover most exam questions</h2>
+    <ol class="rules">
+      <li><b>Block modes vs stream-like modes.</b> ECB and CBC pad the last block and need D<sub>K</sub> to decrypt. CFB, OFB and CTR never pad and only ever use E<sub>K</sub>.</li>
+      <li><b>What feeds back?</b> CBC and CFB feed back ciphertext. OFB feeds back the cipher's own output. CTR feeds back nothing, it just counts.</li>
+      <li><b>Never reuse an IV or nonce with the same key.</b> In CFB, OFB and CTR a repeat reuses the keystream, so C₁ ⊕ C₂ = P₁ ⊕ P₂ leaks.</li>
+      <li><b>Parallel everywhere:</b> CTR, both directions. ECB too, but it is insecure. CBC and CFB decrypt in parallel only. OFB is sequential both ways.</li>
+    </ol>
+    <p class="note">In the exam: draw the block diagram, write the encryption and decryption formulas, then give two advantages and two disadvantages (parallelism, error propagation, padding).</p>
+  </section>
+</div>
+
+<script>
+(function () {
+  var X = [140, 380, 620];
+  var S = ['₁', '₂', '₃'];
+  var EK = 'E<tspan class="sub" dx="1" dy="4">K</tspan>';
+
+  function Builder() {
+    var out = [];
+    return {
+      out: out,
+      box: function (cx, y, w, h, label, kind, step) {
+        out.push({ step: step, svg: '<rect class="b ' + kind + '" x="' + (cx - w / 2) + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="7"/><text class="t" x="' + cx + '" y="' + (y + h / 2) + '">' + label + '</text>' });
+      },
+      xor: function (cx, cy, step) {
+        out.push({ step: step, svg: '<circle class="x" cx="' + cx + '" cy="' + cy + '" r="15"/><path class="xp" d="M' + (cx - 8) + ' ' + cy + 'H' + (cx + 8) + 'M' + cx + ' ' + (cy - 8) + 'V' + (cy + 8) + '"/>' });
+      },
+      arrow: function (pts, step) {
+        out.push({ step: step, svg: '<path class="a" marker-end="url(#ah)" d="M' + pts.map(function (p) { return p[0] + ' ' + p[1]; }).join('L') + '"/>' });
+      },
+      lbl: function (x, y, t, step, anchor) {
+        out.push({ step: step, svg: '<text class="l" x="' + x + '" y="' + y + '" text-anchor="' + (anchor || 'start') + '">' + t + '</text>' });
+      }
+    };
+  }
+
+  var M = {
+    ECB: {
+      full: 'Electronic Codebook', hook: 'Each Chunk Blindly: no chain, no IV.', h: 270,
+      enc: 'Cᵢ = E_K(Pᵢ)', dec: 'Pᵢ = D_K(Cᵢ)', encSide: 'no IV, every block on its own', decSide: 'needs the decrypt function D_K',
+      iv: 'No', pad: 'Yes', encP: 'Parallel', decP: 'Parallel', dk: 'Yes', err: '1 block', verdict: 'Insecure', vcls: 'bad',
+      note: 'Identical plaintext blocks give identical ciphertext blocks, so the shape of the message shows through (the famous ECB penguin image). Only fit for a single random block, such as wrapping a key.',
+      caps: [
+        'Split the message into blocks P₁, P₂, P₃. The last block is padded if it is short.',
+        'Every block goes into its own E_K box. Nothing links one block to the next.',
+        'Each box outputs a ciphertext block. The same P always gives the same C, so patterns leak. All three boxes can run at the same time.'
+      ],
+      build: function (b) {
+        for (var i = 0; i < 3; i++) {
+          var cx = X[i];
+          b.box(cx, 20, 100, 40, 'P' + S[i], 'p', 1);
+          b.arrow([[cx, 60], [cx, 110]], 2);
+          b.box(cx, 110, 100, 40, EK, 'k', 2);
+          b.arrow([[cx, 150], [cx, 200]], 3);
+          b.box(cx, 200, 100, 40, 'C' + S[i], 'c', 3);
+        }
+      }
+    },
+    CBC: {
+      full: 'Cipher Block Chaining', hook: 'Chain: XOR with the previous ciphertext, then encrypt.', h: 320,
+      enc: 'Cᵢ = E_K(Pᵢ ⊕ Cᵢ₋₁)', dec: 'Pᵢ = D_K(Cᵢ) ⊕ Cᵢ₋₁', encSide: 'C₀ = IV', decSide: 'C₀ = IV',
+      iv: 'Yes', pad: 'Yes', encP: 'Sequential', decP: 'Parallel', dk: 'Yes', err: '2 blocks', verdict: 'Safe, classic', vcls: 'good',
+      note: 'The IV must be random and unpredictable, but it does not have to be secret. Decryption is parallel because Pᵢ needs only Cᵢ and Cᵢ₋₁, which are both already known. A flipped bit in Cᵢ garbles Pᵢ completely and flips the same bit in Pᵢ₊₁.',
+      caps: [
+        'Start with blocks P₁, P₂, P₃ and a random IV.',
+        'XOR the first plaintext block with the IV: P₁ ⊕ IV.',
+        'Encrypt the result with E_K. That is C₁.',
+        'The chain: C₁ is fed back and XORed with P₂.',
+        'Encrypt it: C₂ = E_K(P₂ ⊕ C₁).',
+        'C₂ chains into block 3: P₃ ⊕ C₂.',
+        'Encrypt: C₃ = E_K(P₃ ⊕ C₂). Every Cᵢ depends on all earlier blocks, so encryption cannot run in parallel. Decryption can.'
+      ],
+      build: function (b) {
+        b.box(42, 90, 56, 40, 'IV', 'v', 1);
+        var xs = [2, 4, 6], es = [3, 5, 7];
+        for (var i = 0; i < 3; i++) {
+          var cx = X[i];
+          b.box(cx, 20, 100, 40, 'P' + S[i], 'p', 1);
+          b.arrow([[cx, 60], [cx, 94]], xs[i]);
+          b.xor(cx, 110, xs[i]);
+          b.arrow([[cx, 126], [cx, 160]], es[i]);
+          b.box(cx, 160, 100, 40, EK, 'k', es[i]);
+          b.arrow([[cx, 200], [cx, 250]], es[i]);
+          b.box(cx, 250, 100, 40, 'C' + S[i], 'c', es[i]);
+          if (i < 2) {
+            b.arrow([[cx + 50, 270], [cx + 120, 270], [cx + 120, 110], [X[i + 1] - 16, 110]], xs[i + 1]);
+            b.lbl(cx + 128, 190, 'C' + S[i], xs[i + 1]);
+          }
+        }
+        b.arrow([[70, 110], [124, 110]], 2);
+      }
+    },
+    CFB: {
+      full: 'Cipher Feedback', hook: 'Ciphertext Feeds Back: encrypt the old ciphertext, XOR with plaintext.', h: 350,
+      enc: 'Cᵢ = Pᵢ ⊕ E_K(Cᵢ₋₁)', dec: 'Pᵢ = Cᵢ ⊕ E_K(Cᵢ₋₁)', encSide: 'C₀ = IV', decSide: 'C₀ = IV, still E_K, never D_K',
+      iv: 'Yes', pad: 'No', encP: 'Sequential', decP: 'Parallel', dk: 'No', err: '2 blocks', verdict: 'Self-syncing', vcls: 'good',
+      note: 'Decryption also uses E_K, which is why no D_K is needed. A bit error hits one bit of that block, then garbles the next block, and the stream recovers after that (self-synchronising).',
+      caps: [
+        'Start with blocks P₁, P₂, P₃ and a random IV.',
+        'Encrypt the IV with E_K. Note that the plaintext is not encrypted, this output is a keystream.',
+        'XOR the keystream with P₁ to get C₁.',
+        'C₁ is fed back. It becomes the input of the next E_K.',
+        'E_K(C₁) is XORed with P₂ to get C₂.',
+        'C₂ is fed back into the E_K of block 3.',
+        'XOR with P₃ gives C₃. Decryption only needs the ciphertext blocks, which are all known up front, so it can run in parallel.'
+      ],
+      build: function (b) {
+        b.box(42, 100, 56, 40, 'IV', 'v', 1);
+        b.arrow([[70, 120], [90, 120]], 2);
+        var es = [2, 4, 6], xs = [3, 5, 7];
+        for (var i = 0; i < 3; i++) {
+          var cx = X[i];
+          b.box(cx + 120, 20, 60, 40, 'P' + S[i], 'p', 1);
+          b.box(cx, 100, 100, 40, EK, 'k', es[i]);
+          b.arrow([[cx, 140], [cx, 194]], xs[i]);
+          b.lbl(cx + 8, 168, 'keystream', xs[i]);
+          b.xor(cx, 210, xs[i]);
+          b.arrow([[cx + 120, 60], [cx + 120, 210], [cx + 16, 210]], xs[i]);
+          b.arrow([[cx, 226], [cx, 280]], xs[i]);
+          b.box(cx, 280, 100, 40, 'C' + S[i], 'c', xs[i]);
+          if (i < 2) {
+            b.arrow([[cx + 50, 300], [cx + 165, 300], [cx + 165, 120], [X[i + 1] - 50, 120]], es[i + 1]);
+            b.lbl(cx + 172, 215, 'C' + S[i], es[i + 1]);
+          }
+        }
+      }
+    },
+    OFB: {
+      full: 'Output Feedback', hook: "Output Feeds Back: the cipher's own output is its next input.", h: 350,
+      enc: 'Oᵢ = E_K(Oᵢ₋₁),  Cᵢ = Pᵢ ⊕ Oᵢ', dec: 'Pᵢ = Cᵢ ⊕ Oᵢ', encSide: 'O₀ = IV', decSide: 'same keystream, same XOR',
+      iv: 'Yes', pad: 'No', encP: 'Sequential', decP: 'Sequential', dk: 'No', err: '1 bit', verdict: 'Noise-tolerant', vcls: 'good',
+      note: 'The keystream depends only on the key and the IV, so it can be computed before the message arrives. Encryption and decryption are the same operation. Reusing an IV with the same key reuses the keystream and leaks P₁ ⊕ P₂.',
+      caps: [
+        'Start with blocks P₁, P₂, P₃ and a random IV.',
+        'Encrypt the IV: O₁ = E_K(IV). This is the first keystream block.',
+        'XOR with the plaintext: C₁ = P₁ ⊕ O₁.',
+        'O₁ (not C₁) goes into the next E_K, giving O₂ = E_K(O₁).',
+        'C₂ = P₂ ⊕ O₂.',
+        'O₂ goes into the next E_K, giving O₃.',
+        'C₃ = P₃ ⊕ O₃. The plaintext never enters the loop, so a flipped ciphertext bit flips just one plaintext bit.'
+      ],
+      build: function (b) {
+        b.box(42, 100, 56, 40, 'IV', 'v', 1);
+        b.arrow([[70, 120], [90, 120]], 2);
+        var es = [2, 4, 6], xs = [3, 5, 7];
+        for (var i = 0; i < 3; i++) {
+          var cx = X[i];
+          b.box(cx + 120, 190, 60, 40, 'P' + S[i], 'p', 1);
+          b.box(cx, 100, 100, 40, EK, 'k', es[i]);
+          b.arrow([[cx, 140], [cx, 194]], xs[i]);
+          b.lbl(cx + 8, 168, 'O' + S[i], xs[i]);
+          b.xor(cx, 210, xs[i]);
+          b.arrow([[cx + 90, 210], [cx + 16, 210]], xs[i]);
+          b.arrow([[cx, 226], [cx, 280]], xs[i]);
+          b.box(cx, 280, 100, 40, 'C' + S[i], 'c', xs[i]);
+          if (i < 2) {
+            b.arrow([[cx + 50, 120], [X[i + 1] - 50, 120]], es[i + 1]);
+            b.lbl(cx + 120, 106, 'O' + S[i], es[i + 1], 'middle');
+          }
+        }
+      }
+    },
+    CTR: {
+      full: 'Counter', hook: 'Counter: encrypt 1, 2, 3 …, XOR. Nothing feeds back.', h: 350,
+      enc: 'Cᵢ = Pᵢ ⊕ E_K(Nonce ‖ i)', dec: 'Pᵢ = Cᵢ ⊕ E_K(Nonce ‖ i)', encSide: 'i = block counter', decSide: 'identical to encryption',
+      iv: 'Nonce', pad: 'No', encP: 'Parallel', decP: 'Parallel', dk: 'No', err: '1 bit', verdict: 'Best today', vcls: 'good',
+      note: 'Every block has its own counter, so blocks are independent: encrypt or decrypt in any order, or jump straight to block 500. Never reuse a nonce and counter pair under one key. GCM is CTR plus authentication.',
+      caps: [
+        'Start with blocks P₁, P₂, P₃. Each block gets its own counter value: Nonce ‖ 1, Nonce ‖ 2, Nonce ‖ 3.',
+        'Encrypt every counter with E_K, all at the same time. No block waits for another.',
+        'Each keystream block is XORed with its plaintext block.',
+        'Out come C₁, C₂, C₃. Decryption repeats exactly the same steps, so it is parallel too, with random access to any block.'
+      ],
+      build: function (b) {
+        for (var i = 0; i < 3; i++) {
+          var cx = X[i];
+          b.box(cx, 20, 120, 40, 'Nonce‖' + (i + 1), 'v', 1);
+          b.box(cx + 120, 190, 60, 40, 'P' + S[i], 'p', 1);
+          b.arrow([[cx, 60], [cx, 100]], 2);
+          b.box(cx, 100, 100, 40, EK, 'k', 2);
+          b.arrow([[cx, 140], [cx, 194]], 3);
+          b.lbl(cx + 8, 168, 'keystream', 3);
+          b.xor(cx, 210, 3);
+          b.arrow([[cx + 90, 210], [cx + 16, 210]], 3);
+          b.arrow([[cx, 226], [cx, 280]], 4);
+          b.box(cx, 280, 100, 40, 'C' + S[i], 'c', 4);
+        }
+      }
+    }
+  };
+  var ORDER = ['ECB', 'CBC', 'CFB', 'OFB', 'CTR'];
+
+  var $ = function (id) { return document.getElementById(id); };
+  var cur = 0, max = 0, key = 'ECB', timer = null, els = [];
+
+  function mk(tag, cls, html) { var e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; }
+
+  function stopPlay() { if (timer) { clearInterval(timer); timer = null; } $('play').textContent = 'Play'; }
+
+  function setStep(n, hl) {
+    cur = n;
+    var m = M[key];
+    els.forEach(function (el) {
+      var s = +el.getAttribute('data-step');
+      el.classList.toggle('off', s > n);
+      el.classList.toggle('cur', !!hl && s === n);
+    });
+    $('caption').textContent = n === 0 ? 'Press Next or Play to start.' : m.caps[n - 1];
+    $('count').textContent = 'Step ' + n + ' of ' + max;
+    $('back').disabled = n <= 0;
+    $('next').disabled = n >= max;
+  }
+
+  function fmtVal(v) {
+    if (v === 'Parallel') return '<span class="good">Parallel</span>';
+    if (v === 'Sequential') return '<span class="warn">Sequential</span>';
+    return v;
+  }
+
+  function buildTable() {
+    var t = $('table');
+    var h = '<thead><tr><th>Mode</th><th>IV</th><th>Padding</th><th>Encrypt</th><th>Decrypt</th><th>Needs D<sub>K</sub></th><th>Error spread</th></tr></thead><tbody>';
+    ORDER.forEach(function (k) {
+      var m = M[k];
+      h += '<tr data-mode="' + k + '"><td>' + k + '</td><td>' + m.iv + '</td><td>' + m.pad + '</td><td>' + fmtVal(m.encP) + '</td><td>' + fmtVal(m.decP) + '</td><td>' + m.dk + '</td><td>' + m.err + '</td></tr>';
+    });
+    t.innerHTML = h + '</tbody>';
+  }
+
+  function show(k) {
+    stopPlay();
+    key = k;
+    var m = M[k];
+    document.querySelectorAll('.tab').forEach(function (t) { t.setAttribute('aria-selected', t.getAttribute('data-mode') === k ? 'true' : 'false'); });
+    document.querySelectorAll('#table tr[data-mode]').forEach(function (r) { r.classList.toggle('sel', r.getAttribute('data-mode') === k); });
+    $('modeName').innerHTML = k + '<small>' + m.full + '</small>';
+    $('hook').textContent = m.hook;
+    $('factMode').textContent = k;
+
+    var b = Builder();
+    m.build(b);
+    max = m.caps.length;
+    var svg = '<svg viewBox="0 0 790 ' + m.h + '" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="' + k + ' encryption diagram">' +
+      '<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="ah" d="M0 0L10 5L0 10z"/></marker></defs>' +
+      b.out.map(function (o) { return '<g class="el" data-step="' + o.step + '">' + o.svg + '</g>'; }).join('') + '</svg>';
+    $('diagram').innerHTML = svg;
+    els = Array.prototype.slice.call($('diagram').querySelectorAll('.el'));
+
+    var f = $('formulas');
+    f.innerHTML = '';
+    [['Encrypt', m.enc, m.encSide], ['Decrypt', m.dec, m.decSide]].forEach(function (x) {
+      var d = mk('div', 'formula');
+      d.appendChild(mk('div', 'lab', x[0]));
+      var eq = mk('div', 'eq ans'); eq.textContent = x[1]; eq.tabIndex = 0; d.appendChild(eq);
+      var sd = mk('div', 'side ans'); sd.textContent = x[2]; d.appendChild(sd);
+      f.appendChild(d);
+    });
+
+    var facts = [
+      ['IV needed', m.iv, ''], ['Padding', m.pad, ''],
+      ['Encrypt', m.encP, m.encP === 'Parallel' ? 'good' : 'warn'], ['Decrypt', m.decP, m.decP === 'Parallel' ? 'good' : 'warn'],
+      ['Uses D_K', m.dk, ''], ['1 bit error spreads to', m.err, ''], ['Verdict', m.verdict, m.vcls]
+    ];
+    var fc = $('facts');
+    fc.innerHTML = '';
+    facts.forEach(function (x) {
+      var d = mk('div', 'fact');
+      d.appendChild(mk('div', 'lab', x[0].replace('D_K', 'D<sub>K</sub>')));
+      var v = mk('div', 'val ans ' + x[2]); v.textContent = x[1]; v.tabIndex = 0; d.appendChild(v);
+      fc.appendChild(d);
+    });
+    $('note').textContent = m.note;
+    $('note').classList.remove('shown');
+    document.querySelectorAll('.ans').forEach(function (a) { a.classList.remove('shown'); });
+
+    setStep(max, false);
+    try { if (location.hash.slice(1) !== k.toLowerCase()) history.replaceState(null, '', '#' + k.toLowerCase()); } catch (e) {}
+  }
+
+  // tabs
+  ORDER.forEach(function (k) {
+    var b = mk('button', 'tab', k);
+    b.setAttribute('role', 'tab'); b.setAttribute('data-mode', k);
+    b.addEventListener('click', function () { show(k); });
+    $('tabs').appendChild(b);
+  });
+  buildTable();
+
+  $('next').addEventListener('click', function () { stopPlay(); setStep(Math.min(max, cur + 1), true); });
+  $('back').addEventListener('click', function () { stopPlay(); setStep(Math.max(0, cur - 1), true); });
+  $('play').addEventListener('click', function () {
+    if (timer) { stopPlay(); return; }
+    $('play').textContent = 'Pause';
+    if (cur >= max) setStep(0, true);
+    timer = setInterval(function () {
+      if (cur >= max) { stopPlay(); return; }
+      setStep(cur + 1, true);
+      if (cur >= max) stopPlay();
+    }, 1500);
+  });
+
+  // recall mode
+  $('recall').addEventListener('change', function (e) {
+    document.body.classList.toggle('recall', e.target.checked);
+    document.querySelectorAll('.ans').forEach(function (a) { a.classList.remove('shown'); });
+  });
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('.ans') : null;
+    if (a && document.body.classList.contains('recall')) a.classList.toggle('shown');
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && document.activeElement && document.activeElement.classList.contains('ans')) document.activeElement.click();
+  });
+
+  window.addEventListener('hashchange', function () {
+    var k = location.hash.slice(1).toUpperCase();
+    if (M[k] && k !== key) show(k);
+  });
+  var start = location.hash.slice(1).toUpperCase();
+  show(M[start] ? start : 'ECB');
+})();
+</script>
+
+</body></html>
